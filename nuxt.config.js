@@ -1,5 +1,8 @@
 module.exports = {
   mode: 'universal',
+
+  buildDir: 'dist',
+
   /*
    ** Headers of the page
    */
@@ -28,13 +31,6 @@ module.exports = {
    ** Plugins to load before mounting the App
    */
   plugins: [],
-  /*
-   ** Nuxt.js dev-modules
-   */
-  buildModules: [
-    // Doc: https://github.com/nuxt-community/eslint-module
-    '@nuxtjs/eslint-module'
-  ],
   /*
    ** Nuxt.js modules
    */

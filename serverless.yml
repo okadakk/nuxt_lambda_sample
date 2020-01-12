@@ -1,0 +1,123 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: nuxt-lambda-test
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: ap-northeast-1
+
+custom:
+  buckets:
+    ASSETS_BUCKET_NAME: nuxt-lambda-test-assets
+  s3Sync:
+    - bucketName: ${self:custom.buckets.ASSETS_BUCKET_NAME}
+      bucketPrefix: assets/
+      localDir: dist/dist/client
+    - bucketName: ${self:custom.buckets.ASSETS_BUCKET_NAME}
+      bucketPrefix: static/
+      localDir: static
+
+functions:
+  renderer:
+    handler: server/index.handler
+    memorySize: 512
+    timeout: 5
+    environment:
+      NODE_ENV: development
+    package:
+      individually: true
+      exclude:
+        - '**'
+      include:
+        - server/**
+        - dist/**
+        - nuxt.config.js
+    events:
+      - http:
+          path: /
+          method: any
+      - http:
+          path: /{proxy+}
+          method: any
+      - http:
+          path: /_nuxt/{proxy+}
+          method: any
+          integration: http-proxy
+          request:
+            uri: https://${self:custom.buckets.ASSETS_BUCKET_NAME}.s3.${self:provider.region}.amazonaws.com/assets/{proxy}
+            parameters:
+              paths:
+                proxy: true
+      - http:
+          path: /static/{proxy+}
+          method: any
+          integration: http-proxy
+          request:
+            uri: https://${self:custom.buckets.ASSETS_BUCKET_NAME}.s3.${self:provider.region}.amazonaws.com/static/{proxy}
+            parameters:
+              paths:
+                proxy: true
+    layers:
+      - {Ref: MylayerLambdaLayer}
+
+layers:
+  mylayer:
+    path: layers
+
+resources:
+  Resources:
+    ClientAssetsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.buckets.ASSETS_BUCKET_NAME}
+        CorsConfiguration:
+          CorsRules:
+            -
+              AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - HEAD
+                - PUT
+                - POST
+                - DELETE
+              MaxAge: 3000
+              ExposedHeaders:
+                - x-amz-server-side-encryption
+                - x-amz-request-id
+                - x-amz-id-2
+    ClientAssetsBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: ClientAssetsBucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement: [
+            {
+              Action: ['s3:GetObject'],
+              Effect: 'Allow',
+              Resource: {
+                Fn::Join: ['', ['arn:aws:s3:::', { Ref: 'ClientAssetsBucket' }, '/*']],
+              },
+              Principal: '*'
+            },
+          ]
+
+plugins:
+  - serverless-s3-sync
