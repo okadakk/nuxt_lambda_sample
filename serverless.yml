@@ -28,7 +28,7 @@ custom:
       localDir: dist/dist/client
     - bucketName: ${self:custom.buckets.ASSETS_BUCKET_NAME}
       bucketPrefix: static/
-      localDir: static
+      localDir: static/static
 
 functions:
   renderer:
